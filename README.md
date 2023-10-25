@@ -22,7 +22,7 @@ that the work flow looks and feels like using a traditional interpreter.
 
 ## TODO
 
-- [ ] Iron out the bugs that make drag and drop choosy about where you drop the
+- [x] Iron out the bugs that make drag and drop choosy about where you drop the
   file
 - [ ] Fix the bug where the interpreter hangs if you give it a non Web UI file.
 - [ ] Maybe open non Web UI files in QTADS instead?

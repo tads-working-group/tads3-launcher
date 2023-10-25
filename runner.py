@@ -17,6 +17,7 @@ class PromptWidget(QtWidgets.QWidget):
             "Play a T3 File", alignment=QtCore.Qt.AlignCenter
         )
         self.mainlabel.setStyleSheet("font-size: 20pt; font-weight: 700;")
+        self.mainlabel.installEventFilter(self)
         layout.addWidget(self.mainlabel)
 
         self.subtitlelabel = QtWidgets.QLabel(
@@ -27,6 +28,7 @@ class PromptWidget(QtWidgets.QWidget):
         self.subtitlelabel.setStyleSheet(
             "font-size: 14pt; color: #ddd; font-weight: 300;"
         )
+        self.subtitlelabel.installEventFilter(self)
         layout.addWidget(self.subtitlelabel)
 
         self.button = QtWidgets.QPushButton("Open game")
@@ -34,6 +36,7 @@ class PromptWidget(QtWidgets.QWidget):
         self.button.setStyleSheet(
             "QPushButton { height: 40px; background: #400040 } QPushButton:hover { background: #300030; }"
         )
+        self.button.installEventFilter(self)
         layout.addWidget(self.button)
 
         self.setLayout(layout)
@@ -73,6 +76,7 @@ class DragAndDropButtonWidget(QtWidgets.QWidget):
         self.setAcceptDrops(True)
 
         self.child = child
+        self.child.installEventFilter(self)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setAlignment(QtCore.Qt.AlignCenter)
