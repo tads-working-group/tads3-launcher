@@ -1,7 +1,10 @@
 import re
+import threading
 import sys
 import subprocess
+import time
 from PySide6 import QtCore, QtWidgets, QtGui, QtWebEngineWidgets
+from searchbin import search_loop
 
 
 class PromptWidget(QtWidgets.QWidget):
@@ -134,22 +137,52 @@ class RunnerWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.stack)
 
     def openGame(self, path):
-        popen = subprocess.Popen(
-            ["frob", "-N", "0", path], shell=False, stdout=subprocess.PIPE
-        )
-        lines = 0
-        while popen.poll() is None:
-            line = popen.stdout.readline().decode()
-            if len(line) > 0:
-                lines += 1
-                urls = findUrl(line)
-                if len(urls) > 0:
-                    print(urls)
-                    self.webWidget.load(urls[0])
-                    break
-                elif lines > 2:
-                    break
-        self.stack.setCurrentIndex(1)
+        isWebUI = False
+
+        with open(path, "rb") as fh:
+            if search_loop(["tads-net".encode("utf-8")], fh.name, fh.read, fh.seek):
+                isWebUI = True
+
+        if not isWebUI:
+            dialog = QtWidgets.QMessageBox.critical(
+                self,
+                "Uh oh!",
+                "It looks like that's a regular game file, not a Web UI game file.",
+                buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+            )
+        else:
+            foundGame = False
+
+            def watcher(proc, delay):
+                time.sleep(delay)
+                if not foundGame:
+                    dialog = QtWidgets.QMessageBox.critical(
+                        self,
+                        "Uh oh!",
+                        "It looks like the frobTADS server didn't start in a reasonable amount of time. Something's wrong.",
+                        buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+                    )
+                    proc.kill()
+
+            popen = subprocess.Popen(
+                ["frob", "-i", "plain", "-N", "0", path],
+                shell=False,
+                stdout=subprocess.PIPE,
+            )
+            threading.Thread(target=watcher, args=(popen, 1)).start()
+
+            while popen.poll() is None:
+                line = popen.stdout.readline()
+                if not isinstance(line, str):
+                    line = line.decode()
+                if len(line) > 0:
+                    urls = findUrl(line)
+                    if len(urls) > 0:
+                        print(urls)
+                        foundGame = True
+                        self.webWidget.load(urls[0])
+                        self.stack.setCurrentIndex(1)
+                        break
 
 
 if __name__ == "__main__":
