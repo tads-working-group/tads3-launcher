@@ -47,10 +47,10 @@ class PromptWidget(QtWidgets.QWidget):
     def showDropIsValid(self, valid):
         if valid:
             self.mainlabel.setStyleSheet(
-                "color: rgb(225, 142, 25); font-size: 20pt; font-weight: 700;"
+                "color: #FF8E19; font-size: 20pt; font-weight: 700;"
             )
             self.subtitlelabel.setStyleSheet(
-                "color: rgb(225, 142, 25); font-size: 14pt; font-weight: 300;"
+                "color: #FF8E19; font-size: 14pt; font-weight: 300;"
             )
         else:
             self.mainlabel.setStyleSheet(
@@ -66,7 +66,7 @@ class PromptWidget(QtWidgets.QWidget):
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         dialog.setNameFilter("TADS 3 Game Files (*.t3)")
         if dialog.exec():
-            self.openGame(dialog.selectedUrls()[0].path(), event)
+            self.openGame(dialog.selectedUrls()[0].toLocalFile(), event)
 
 
 class DragAndDropButtonWidget(QtWidgets.QWidget):
@@ -91,7 +91,7 @@ class DragAndDropButtonWidget(QtWidgets.QWidget):
         if (
             event.mimeData().hasFormat("application/vnd.portal.filetransfer")
             or event.mimeData().hasFormat("application/vnd.portal.files")
-        ) and event.mimeData().urls()[0].path().endswith(".t3"):
+        ) and event.mimeData().urls()[0].toLocalFile().endswith(".t3"):
             event.acceptProposedAction()
             self.child.showDropIsValid(True)
 
@@ -99,7 +99,7 @@ class DragAndDropButtonWidget(QtWidgets.QWidget):
         self.child.showDropIsValid(False)
 
     def dropEvent(self, event):
-        path = event.mimeData().urls()[0].path()
+        path = event.mimeData().urls()[0].toLocalFile()
         self.openGame(path, event)
         event.acceptProposedAction()
         self.child.showDropIsValid(False)
