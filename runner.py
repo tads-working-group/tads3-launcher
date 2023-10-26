@@ -1,10 +1,10 @@
 import re
-import threading
 import sys
-import subprocess
-import time
+import platform
 from PySide6 import QtCore, QtWidgets, QtGui, QtWebEngineWidgets
 from searchbin import search_loop
+
+PLATFORM = platform.system()
 
 
 class PromptWidget(QtWidgets.QWidget):
@@ -66,7 +66,7 @@ class PromptWidget(QtWidgets.QWidget):
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         dialog.setNameFilter("TADS 3 Game Files (*.t3)")
         if dialog.exec():
-            self.openGame(dialog.selectedUrls()[0].path())
+            self.openGame(dialog.selectedUrls()[0].path(), event)
 
 
 class DragAndDropButtonWidget(QtWidgets.QWidget):
@@ -100,7 +100,7 @@ class DragAndDropButtonWidget(QtWidgets.QWidget):
 
     def dropEvent(self, event):
         path = event.mimeData().urls()[0].path()
-        self.openGame(path)
+        self.openGame(path, event)
         event.acceptProposedAction()
         self.child.showDropIsValid(False)
 
@@ -134,9 +134,62 @@ class RunnerWindow(QtWidgets.QMainWindow):
         self.stack.addWidget(self.webWidget)
         self.stack.setCurrentIndex(0)
 
+        self.serverProcess = None
+        self.foundGame = False
+
         self.setCentralWidget(self.stack)
 
-    def openGame(self, path):
+    def processFinished(self):
+        if self.foundGame:
+            self.close()
+        else:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Uh oh!",
+                "Failed to start Web UI server process.",
+                buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+            )
+
+    def closeEvent(self, event, accepted=False):
+        if self.serverProcess is not None:
+            button = QtWidgets.QMessageBox.question(
+                self,
+                "Close game?",
+                "Are you sure you want to close your game while it's still running?",
+            )
+            if button == QtWidgets.QMessageBox.StandardButton.Yes:
+                self.serverProcess.terminate()
+                self.serverProcess.waitForFinished()
+                event.accept()
+            else:
+                event.ignore()
+        else:
+            event.accept()
+
+    def processStdout(self):
+        data = self.serverProcess.readAllStandardOutput()
+        line = bytes(data).decode("utf8")
+        urls = findUrl(line)
+        if len(urls) > 0:
+            print(urls)
+            self.foundGame = True
+            self.webWidget.load(urls[0])
+            self.stack.setCurrentIndex(1)
+
+    def processTimeout(self):
+        if not self.foundGame:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Uh oh!",
+                "It looks like the frobTADS server didn't start in a reasonable amount of time. Something's wrong.",
+                buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+            )
+            self.serverProcess.kill()
+
+    def openGame(self, path, event):
+        global PLATFORM
+
+        self.foundGame = False
         isWebUI = False
 
         with open(path, "rb") as fh:
@@ -144,52 +197,36 @@ class RunnerWindow(QtWidgets.QMainWindow):
                 isWebUI = True
 
         if not isWebUI:
-            dialog = QtWidgets.QMessageBox.critical(
+            QtWidgets.QMessageBox.critical(
                 self,
                 "Uh oh!",
                 "It looks like that's a regular game file, not a Web UI game file.",
                 buttons=QtWidgets.QMessageBox.StandardButton.Ok,
             )
         else:
-            foundGame = False
+            self.serverProcess = QtCore.QProcess()
+            self.serverProcess.finished.connect(self.processFinished)
+            self.serverProcess.readyReadStandardOutput.connect(self.processStdout)
 
-            def watcher(proc, delay):
-                time.sleep(delay)
-                if not foundGame:
-                    proc.kill()
-
-            popen = subprocess.Popen(
-                ["frob", "-i", "plain", "-N", "0", path],
-                shell=False,
-                stdout=subprocess.PIPE,
-            )
-            threading.Thread(target=watcher, args=(popen, 1)).start()
-
-            while popen.poll() is None:
-                line = popen.stdout.readline()
-                if not isinstance(line, str):
-                    line = line.decode()
-                if len(line) > 0:
-                    urls = findUrl(line)
-                    if len(urls) > 0:
-                        print(urls)
-                        foundGame = True
-                        self.webWidget.load(urls[0])
-                        self.stack.setCurrentIndex(1)
-                        break
-
-            if not foundGame:
-                dialog = QtWidgets.QMessageBox.critical(
-                    self,
-                    "Uh oh!",
-                    "It looks like the frobTADS server didn't start in a reasonable amount of time. Something's wrong.",
-                    buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+            if PLATFORM == "Linux" or PLATFORM == "Darwin":
+                self.serverProcess.start("frob", ["-i", "plain", "-N", "0", path])
+            elif PLATFORM == "Windows":
+                self.serverProcess.start(
+                    "./t3run.exe", ["-plain", "-ns0", "-webhost", "localhost", path]
                 )
+
+            QtCore.QTimer.singleShot(1300, self.processTimeout)
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
 
+    if PLATFORM not in ["Windows", "Linux", "Darwin"]:
+        QtWidgets.QMessageBox.critical(
+            app,
+            "Uh oh!",
+            "It looks like you're running this on an unsupported platform. At the moment, we only support Linux, macOS, and Windows.",
+        )
     window = RunnerWindow()
     window.show()
 
