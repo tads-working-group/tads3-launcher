@@ -156,7 +156,12 @@ class RunnerWindow(QtWidgets.QMainWindow):
                 "Are you sure you want to close your game while it's still running?",
             )
             if button == QtWidgets.QMessageBox.StandardButton.Yes:
-                self.serverProcess.terminate()
+                if (
+                    PLATFORM == "Windows"
+                ):  # windows doesn't have a proper way to end terminal applications lmfao
+                    self.serverProcess.kill()
+                else:
+                    self.serverProcess.terminate()
                 self.serverProcess.waitForFinished()
                 event.accept()
             else:
