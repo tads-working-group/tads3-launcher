@@ -222,6 +222,7 @@ class RunnerWindow(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_UseOpenGLES)
     app = QtWidgets.QApplication([])
 
     if PLATFORM not in ["Windows", "Linux", "Darwin"]:
