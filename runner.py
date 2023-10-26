@@ -88,10 +88,8 @@ class DragAndDropButtonWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def dragEnterEvent(self, event):
-        if (
-            event.mimeData().hasFormat("application/vnd.portal.filetransfer")
-            or event.mimeData().hasFormat("application/vnd.portal.files")
-        ) and event.mimeData().urls()[0].toLocalFile().endswith(".t3"):
+        urls = event.mimeData().urls()
+        if len(urls) == 1 and urls[0].toLocalFile().endswith(".t3"):
             event.acceptProposedAction()
             self.child.showDropIsValid(True)
 
@@ -120,7 +118,7 @@ class RunnerWindow(QtWidgets.QMainWindow):
         title = "TADS 3 Runner"
 
         self.setWindowTitle(title)
-        self.setStyleSheet("background: #300030;")
+        self.setStyleSheet("background: #300030; color: white;")
 
         self.openGameWidget = DragAndDropButtonWidget(
             PromptWidget(openGameHandler=self.openGame), openGameHandler=self.openGame
