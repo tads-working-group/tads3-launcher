@@ -156,12 +156,6 @@ class RunnerWindow(QtWidgets.QMainWindow):
             def watcher(proc, delay):
                 time.sleep(delay)
                 if not foundGame:
-                    dialog = QtWidgets.QMessageBox.critical(
-                        self,
-                        "Uh oh!",
-                        "It looks like the frobTADS server didn't start in a reasonable amount of time. Something's wrong.",
-                        buttons=QtWidgets.QMessageBox.StandardButton.Ok,
-                    )
                     proc.kill()
 
             popen = subprocess.Popen(
@@ -183,6 +177,14 @@ class RunnerWindow(QtWidgets.QMainWindow):
                         self.webWidget.load(urls[0])
                         self.stack.setCurrentIndex(1)
                         break
+
+            if not foundGame:
+                dialog = QtWidgets.QMessageBox.critical(
+                    self,
+                    "Uh oh!",
+                    "It looks like the frobTADS server didn't start in a reasonable amount of time. Something's wrong.",
+                    buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+                )
 
 
 if __name__ == "__main__":
