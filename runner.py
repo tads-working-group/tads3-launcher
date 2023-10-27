@@ -66,7 +66,7 @@ class PromptWidget(QtWidgets.QWidget):
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         dialog.setNameFilter("TADS 3 Game Files (*.t3)")
         if dialog.exec():
-            self.openGame(dialog.selectedUrls()[0].toLocalFile(), event)
+            self.openGame(dialog.selectedUrls()[0].toLocalFile())
 
 
 class DragAndDropButtonWidget(QtWidgets.QWidget):
@@ -98,7 +98,7 @@ class DragAndDropButtonWidget(QtWidgets.QWidget):
 
     def dropEvent(self, event):
         path = event.mimeData().urls()[0].toLocalFile()
-        self.openGame(path, event)
+        self.openGame(path)
         event.acceptProposedAction()
         self.child.showDropIsValid(False)
 
@@ -124,16 +124,17 @@ class RunnerWindow(QtWidgets.QMainWindow):
             PromptWidget(openGameHandler=self.openGame), openGameHandler=self.openGame
         )
 
-        self.webWidget = QtWebEngineWidgets.QWebEngineView()
-        self.webWidget.load("http://tads.org")
+        self.playerWidget = QtWebEngineWidgets.QWebEngineView()
+        self.playerWidget.load("http://tads.org")
 
         self.stack = QtWidgets.QStackedWidget()
         self.stack.addWidget(self.openGameWidget)
-        self.stack.addWidget(self.webWidget)
+        self.stack.addWidget(self.playerWidget)
         self.stack.setCurrentIndex(0)
 
         self.serverProcess = None
         self.foundGame = False
+        self.isWebUI = False
 
         self.setCentralWidget(self.stack)
 
@@ -149,7 +150,7 @@ class RunnerWindow(QtWidgets.QMainWindow):
             )
 
     def closeEvent(self, event, accepted=False):
-        if self.serverProcess is not None:
+        if not self.serverProcess.finished:
             button = QtWidgets.QMessageBox.question(
                 self,
                 "Close game?",
@@ -172,12 +173,22 @@ class RunnerWindow(QtWidgets.QMainWindow):
     def processStdout(self):
         data = self.serverProcess.readAllStandardOutput()
         line = bytes(data).decode("utf8")
-        urls = findUrl(line)
-        if len(urls) > 0:
-            print(urls)
-            self.foundGame = True
-            self.webWidget.load(urls[0])
-            self.stack.setCurrentIndex(1)
+        if self.isWebUI:
+            urls = findUrl(line)
+            if len(urls) > 0:
+                print(urls)
+                self.foundGame = True
+                self.playerWidget.load(urls[0])
+                self.stack.setCurrentIndex(1)
+        else:
+            matches = re.search(r"^WinId: ([0-9]+)$", line)
+            if matches is not None:
+                print(matches.group(1))
+                window = QtGui.QWindow.fromWinId(int(matches.group(1)))
+                window.setFlags(QtCore.Qt.WindowType.FramelessWindowHint)
+                self.playerWidget = QtWidgets.QWidget.createWindowContainer(window)
+                self.stack.insertWidget(1, self.playerWidget)
+                self.stack.setCurrentIndex(1)
 
     def processTimeout(self):
         if not self.foundGame:
@@ -189,30 +200,33 @@ class RunnerWindow(QtWidgets.QMainWindow):
             )
             self.serverProcess.kill()
 
-    def openGame(self, path, event):
+    def openGame(self, path):
         global PLATFORM
 
         self.foundGame = False
-        isWebUI = False
+        self.isWebUI = False
 
         with open(path, "rb") as fh:
             if search_loop(["tads-net".encode("utf-8")], fh.name, fh.read, fh.seek):
-                isWebUI = True
+                self.isWebUI = True
 
-        if not isWebUI:
-            QtWidgets.QMessageBox.critical(
-                self,
-                "Uh oh!",
-                "It looks like that's a regular game file, not a Web UI game file.",
-                buttons=QtWidgets.QMessageBox.StandardButton.Ok,
-            )
+        self.serverProcess = QtCore.QProcess()
+        self.serverProcess.finished.connect(self.processFinished)
+        self.serverProcess.readyReadStandardOutput.connect(self.processStdout)
+
+        if not self.isWebUI:
+            if PLATFORM == "Linux":
+                self.serverProcess.start("./qtads/qtads", [path])
+            elif PLATFORM == "Darwin":
+                pass
+            elif PLATFORM == "Windows":
+                pass
+            self.foundGame = True
         else:
-            self.serverProcess = QtCore.QProcess()
-            self.serverProcess.finished.connect(self.processFinished)
-            self.serverProcess.readyReadStandardOutput.connect(self.processStdout)
-
             if PLATFORM == "Linux" or PLATFORM == "Darwin":
-                self.serverProcess.start("frob", ["-i", "plain", "-N", "0", path])
+                self.serverProcess.start(
+                    "./frobtads/build/frob", ["-i", "plain", "-N", "0", path]
+                )
             elif PLATFORM == "Windows":
                 self.serverProcess.start(
                     "./t3run.exe", ["-plain", "-ns0", "-webhost", "localhost", path]
@@ -232,5 +246,8 @@ if __name__ == "__main__":
         )
     window = RunnerWindow()
     window.show()
+
+    if len(sys.argv) > 1:
+        window.openGame(sys.argv[1], None)
 
     sys.exit(app.exec())
