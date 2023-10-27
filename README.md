@@ -11,12 +11,13 @@ one, and regular interpreters can't play Web UI files and Web UI files can't
 play regular HTML TADS game files, so you'd have to figure it out by trial and
 error.
 
-TADS 3 Launcher solves this problem by checking the plain-text symbols in the
-binary game file it is provided for whether it includes the Web UI network
-library or not. If it is a Web UI game, it uses the correct Web UI-enabled
-runner (either t3run or frobTADS depending on your platform) behind the scenes to run the game
-server, and provides you with an inline webview to the Web UI game, thus
-appearing like a normal self-contained interpreter. If it is *not* a Web UI
+TADS 3 Launcher solves this problem by automatically checking whether the binary
+game file opened by the player includes the telltale plain-text symbols used by
+Web UI games or not. If it does, then it can safely be assumed that this game
+file is a Web UI game, so the launcher uses the correct Web UI-enabled runner
+(either t3run or frobTADS depending on your platform) behind the scenes to run
+the game server, and provides you with an inline webview to the Web UI game,
+thus appearing like a normal self-contained interpreter. If it is *not* a Web UI
 game, but a regular HTML TADS or text-only TADS game, it launches QTADS under
 the hood and embeds the QTADS window as a frameless widget, so that this also
 gives the appearance of being perfectly self contained.
