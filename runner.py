@@ -135,10 +135,12 @@ class RunnerWindow(QtWidgets.QMainWindow):
         self.serverProcess = None
         self.foundGame = False
         self.isWebUI = False
+        self.serverFinished = True
 
         self.setCentralWidget(self.stack)
 
     def processFinished(self):
+        self.serverFinished = True
         if self.foundGame:
             self.close()
         else:
@@ -150,7 +152,7 @@ class RunnerWindow(QtWidgets.QMainWindow):
             )
 
     def closeEvent(self, event, accepted=False):
-        if not self.serverProcess.finished:
+        if self.serverProcess is not None and not self.serverFinished:
             button = QtWidgets.QMessageBox.question(
                 self,
                 "Close game?",
@@ -220,8 +222,9 @@ class RunnerWindow(QtWidgets.QMainWindow):
             elif PLATFORM == "Darwin":
                 pass
             elif PLATFORM == "Windows":
-                pass
+                self.serverProcess.start("./qtads/qtads.exe", [path])
             self.foundGame = True
+            self.serverFinished = False
         else:
             if PLATFORM == "Linux" or PLATFORM == "Darwin":
                 self.serverProcess.start(
@@ -232,6 +235,7 @@ class RunnerWindow(QtWidgets.QMainWindow):
                     "./t3run.exe", ["-plain", "-ns0", "-webhost", "localhost", path]
                 )
 
+            self.serverFinished = False
             QtCore.QTimer.singleShot(1300, self.processTimeout)
 
 
