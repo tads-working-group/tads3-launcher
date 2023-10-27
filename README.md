@@ -48,3 +48,6 @@ Screenshot of the launcher playing a regular HTML TADS game:
 ![A screenshot of the TADS 3 Launcher playing a regular HTML TADS game. It looks
 identical to QTADS except for the window title, since it is just seamlessly
 embedding QTADS.](screenshots/three.png)
+
+## Building
+

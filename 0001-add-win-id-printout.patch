@@ -1,0 +1,32 @@
+From 4a7ce6eb6b8e28e0a59406499d691022782a79d9 Mon Sep 17 00:00:00 2001
+From: Alexis Purslane <alexispurslane@pm.me>
+Date: Fri, 27 Oct 2023 10:20:10 -0400
+Subject: [PATCH] add win id printout
+
+---
+ src/sysframe.cc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/sysframe.cc b/src/sysframe.cc
+index 13f2512..0edb160 100644
+--- a/src/sysframe.cc
++++ b/src/sysframe.cc
+@@ -10,6 +10,7 @@
+ #include <QStatusBar>
+ #include <QTextCodec>
+ #include <cstdlib>
++#include <iostream>
+ 
+ #include "gameinfodialog.h"
+ #include "qtadshostifc.h"
+@@ -76,6 +77,7 @@ CHtmlSysFrameQt::CHtmlSysFrameQt(
+ 
+     // Create our main application window.
+     fMainWin = new CHtmlSysWinGroupQt;
++    std::cout << "WinId: " << fMainWin->winId() << "\n" << std::flush;
+     fMainWin->setWindowTitle(QString::fromLatin1(appName));
+     fMainWin->updateRecentGames();
+ 
+-- 
+2.42.0
+
