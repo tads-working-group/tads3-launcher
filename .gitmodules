@@ -4,3 +4,5 @@
 [submodule "frobtads"]
 	path = frobtads
 	url = https://github.com/realnc/frobtads.git
+[submodule "qtads/"]
+	url = git@github.com:alexispurslane/qtads.git
