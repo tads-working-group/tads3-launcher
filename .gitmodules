@@ -1,8 +1,6 @@
 [submodule "qtads"]
 	path = qtads
-	url = https://github.com/realnc/qtads.git
+	url = git@github.com:alexispurslane/qtads.git
 [submodule "frobtads"]
 	path = frobtads
 	url = https://github.com/realnc/frobtads.git
-[submodule "qtads/"]
-	url = git@github.com:alexispurslane/qtads.git
