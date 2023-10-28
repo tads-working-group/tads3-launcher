@@ -175,17 +175,16 @@ class RunnerWindow(QtWidgets.QMainWindow):
     def processStdout(self):
         data = self.serverProcess.readAllStandardOutput()
         line = bytes(data).decode("utf8")
+        print(line)
         if self.isWebUI:
             urls = findUrl(line)
             if len(urls) > 0:
-                print(urls)
                 self.foundGame = True
                 self.playerWidget.load(urls[0])
                 self.stack.setCurrentIndex(1)
         else:
             matches = re.search(r"^WinId: ([0-9]+)$", line)
             if matches is not None:
-                print(matches.group(1))
                 window = QtGui.QWindow.fromWinId(int(matches.group(1)))
                 window.setFlags(QtCore.Qt.WindowType.FramelessWindowHint)
                 self.playerWidget = QtWidgets.QWidget.createWindowContainer(window)
@@ -218,18 +217,16 @@ class RunnerWindow(QtWidgets.QMainWindow):
 
         if not self.isWebUI:
             if PLATFORM == "Linux":
-                self.serverProcess.start("./qtads/qtads", [path])
+                self.serverProcess.start("./qtads", ["-e", path])
             elif PLATFORM == "Darwin":
                 pass
             elif PLATFORM == "Windows":
-                self.serverProcess.start("./qtads/qtads.exe", [path])
+                self.serverProcess.start("./qtads.exe", [path])
             self.foundGame = True
             self.serverFinished = False
         else:
             if PLATFORM == "Linux" or PLATFORM == "Darwin":
-                self.serverProcess.start(
-                    "./frobtads/build/frob", ["-i", "plain", "-N", "0", path]
-                )
+                self.serverProcess.start("./frob", ["-i", "plain", "-N", "0", path])
             elif PLATFORM == "Windows":
                 self.serverProcess.start(
                     "./t3run.exe", ["-plain", "-ns0", "-webhost", "localhost", path]
