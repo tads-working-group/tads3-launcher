@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=TADS 3 Runner
+Exec=runner
+Icon=runner
+Type=Application
+Categories=Utility;Games

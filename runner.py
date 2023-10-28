@@ -1,4 +1,5 @@
 import re
+import os
 import sys
 import platform
 from PySide6 import QtCore, QtWidgets, QtGui, QtWebEngineWidgets
@@ -147,7 +148,7 @@ class RunnerWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.critical(
                 self,
                 "Uh oh!",
-                "Failed to start Web UI server process.",
+                "Failed to start the interpreter process.",
                 buttons=QtWidgets.QMessageBox.StandardButton.Ok,
             )
 
@@ -175,7 +176,7 @@ class RunnerWindow(QtWidgets.QMainWindow):
     def processStdout(self):
         data = self.serverProcess.readAllStandardOutput()
         line = bytes(data).decode("utf8")
-        print(line)
+        print("Interpreter Stdout:" + line)
         if self.isWebUI:
             urls = findUrl(line)
             if len(urls) > 0:
@@ -191,12 +192,17 @@ class RunnerWindow(QtWidgets.QMainWindow):
                 self.stack.insertWidget(1, self.playerWidget)
                 self.stack.setCurrentIndex(1)
 
+    def processStderr(self):
+        data = self.serverProcess.readAllStandardError()
+        line = bytes(data).decode("utf8")
+        print("Interpreter Stderr:" + line)
+
     def processTimeout(self):
         if not self.foundGame:
             QtWidgets.QMessageBox.critical(
                 self,
                 "Uh oh!",
-                "It looks like the frobTADS server didn't start in a reasonable amount of time. Something's wrong.",
+                "It looks like the frobTADS/qTADS interpreter didn't start in a reasonable amount of time. Something's wrong.",
                 buttons=QtWidgets.QMessageBox.StandardButton.Ok,
             )
             self.serverProcess.kill()
@@ -214,26 +220,26 @@ class RunnerWindow(QtWidgets.QMainWindow):
         self.serverProcess = QtCore.QProcess()
         self.serverProcess.finished.connect(self.processFinished)
         self.serverProcess.readyReadStandardOutput.connect(self.processStdout)
+        self.serverProcess.readyReadStandardError.connect(self.processStderr)
 
         if not self.isWebUI:
-            if PLATFORM == "Linux":
-                self.serverProcess.start("./qtads", ["-e", path])
-            elif PLATFORM == "Darwin":
-                pass
+            if PLATFORM == "Linux" or PLATFORM == "Darwin":
+                self.serverProcess.start("qtads", ["-e", path])
             elif PLATFORM == "Windows":
                 self.serverProcess.start("./qtads.exe", [path])
             self.foundGame = True
             self.serverFinished = False
         else:
             if PLATFORM == "Linux" or PLATFORM == "Darwin":
-                self.serverProcess.start("./frob", ["-i", "plain", "-N", "0", path])
+                self.serverProcess.start("frob", ["-i", "plain", "-N", "0", path])
             elif PLATFORM == "Windows":
                 self.serverProcess.start(
                     "./t3run.exe", ["-plain", "-ns0", "-webhost", "localhost", path]
                 )
 
             self.serverFinished = False
-            QtCore.QTimer.singleShot(1300, self.processTimeout)
+
+        QtCore.QTimer.singleShot(1300, self.processTimeout)
 
 
 if __name__ == "__main__":
